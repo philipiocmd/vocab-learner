@@ -165,7 +165,8 @@
     document.getElementById("settings-form").addEventListener("submit",e=>{
       e.preventDefault();const ui=document.getElementById("ui-language").value,learn=document.getElementById("learn-language").value;
       if(ui===learn){showNotice("Choose two different languages.","bad");renderSettings();return;}
-      settings={ui,learn};localStorage.setItem(settingsKey,JSON.stringify(settings));words=loadWords();showNotice(T("settingsSaved"),"good");renderMenu();
+      settings={ui,learn};localStorage.setItem(settingsKey,JSON.stringify(settings));words=loadWords();
+      updateBranding();showNotice(T("settingsSaved"),"good");renderMenu();
     });
     document.getElementById("ui-language").addEventListener("change",e=>{
       const learning=document.getElementById("learn-language");
@@ -229,10 +230,13 @@
     const el=e.target.closest("[data-action]");if(!el)return;const a=el.dataset.action;
     if(a==="menu"){showNotice();renderMenu();}else if(a==="add"){showNotice();renderAdd();}else if(a==="view"){showNotice();renderVocab();}else if(a==="delete"){showNotice();renderVocab(true);}else if(a==="challenges"){showNotice();renderChallenges();}else if(a==="import-export"){showNotice();renderImportExport();}else if(a==="settings"){showNotice();renderSettings();}else if(a==="export")exportVocab();else if(a==="choose-import")document.getElementById("import-file")?.click();else if(a==="challenge-0")translateUi();else if(a==="challenge-1")translateLearn();else if(a==="challenge-2")missingLetters();else if(a==="challenge-3")unscramble();else if(a==="challenge-random")[translateUi,translateLearn,missingLetters,unscramble][Math.floor(Math.random()*4)]();
   });
-  const uiName=LANGS[settings.ui].name,learnName=LANGS[settings.learn].name;
-  document.title=`${I18N[settings.ui].title} — ${uiName} / ${learnName}`;
-  document.querySelector("header h1").textContent=I18N[settings.ui].title;
-  document.querySelector("header p").textContent=`${uiName} ↔ ${learnName} · ${I18N[settings.ui].subtitle}`;
+  function updateBranding(){
+    const uiName=LANGS[settings.ui].name,learnName=LANGS[settings.learn].name;
+    document.title=`${I18N[settings.ui].title} — ${uiName} / ${learnName}`;
+    document.querySelector("header h1").textContent=I18N[settings.ui].title;
+    document.querySelector("header p").textContent=`${uiName} ↔ ${learnName} · ${I18N[settings.ui].subtitle}`;
+  }
+  updateBranding();
   renderMenu();
 })();
 </script>
