@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vocabulary Trainer</title>
+<style>
+  :root { color-scheme: dark; --bg:#10131b; --panel:#191e2a; --panel2:#222a39; --text:#eef2ff; --muted:#aab4ca; --blue:#7aa7ff; --green:#5ed6a0; --red:#ff7777; --gold:#ffd166; }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; padding:24px 16px; background:radial-gradient(ellipse at top,#202b42 0%,var(--bg) 58%); color:var(--text); font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+  main { width:min(760px,100%); margin:0 auto; }
+  header { text-align:center; margin-bottom:22px; }
+  h1 { margin:0; font-size:clamp(1.7rem,5vw,2.5rem); letter-spacing:-.04em; }
+  header p { color:var(--muted); margin:.35rem 0 0; }
+  .panel { background:color-mix(in srgb,var(--panel) 94%,transparent); border:1px solid #343e52; border-radius:18px; padding:clamp(18px,4vw,28px); box-shadow:0 18px 50px #0003; }
+  .menu { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:18px; }
+  button { border:1px solid #45516a; border-radius:12px; background:var(--panel2); color:var(--text); padding:13px 15px; font:inherit; font-weight:650; cursor:pointer; transition:transform .12s,border-color .12s,background .12s; }
+  button:hover { border-color:var(--blue); background:#2a3549; }
+  button:active { transform:scale(.985); }
+  button:focus-visible,input:focus-visible { outline:3px solid var(--blue); outline-offset:3px; }
+  .menu button { min-height:82px; text-align:left; }
+  .menu .num { display:block; color:var(--muted); font-size:.8rem; font-weight:500; }
+  .menu .add { border-left:4px solid var(--blue); }
+  .menu .view { border-left:4px solid var(--gold); }
+  .menu .delete { border-left:4px solid var(--red); }
+  .menu .challenge { border-left:4px solid #e28ad6; }
+  .section-title { margin:0 0 18px; font-size:1.35rem; }
+  .muted { color:var(--muted); }
+  .field { display:grid; gap:7px; margin:14px 0; }
+  label { font-weight:600; }
+  input { width:100%; border:1px solid #45516a; border-radius:10px; padding:12px 13px; background:#0f1420; color:var(--text); font:inherit; }
+  .actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; }
+  .primary { background:#315da7; border-color:#477bcf; }
+  .danger { border-color:#8b444c; }
+  .back { background:transparent; }
+  .word-list { display:grid; gap:8px; }
+  .word-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:12px 14px; border:1px solid #343e52; border-radius:10px; background:#131925; overflow-wrap:anywhere; }
+  .english { color:#ff9292; }
+  .spanish { color:#8fb8ff; }
+  .word-row.head { background:#252e40; font-weight:750; }
+  .notice { margin-top:16px; padding:12px 14px; border-radius:10px; background:#242e40; border:1px solid #3c4a64; }
+  .notice.good { color:var(--green); border-color:#2b7158; background:#142a27; }
+  .notice.bad { color:var(--red); border-color:#78404a; background:#2b1b25; }
+  .prompt { padding:22px 14px; border-radius:14px; background:#101622; border:1px solid #343e52; text-align:center; font-size:clamp(1.35rem,4vw,2rem); font-weight:750; overflow-wrap:anywhere; margin:16px 0; }
+  .scrambled { letter-spacing:.15em; }
+  .small { font-size:.9rem; }
+  .topline { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
+  .topline .section-title { margin:0; }
+  @media(max-width:480px) { .menu { grid-template-columns:1fr; } .word-row { gap:8px; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Vocabulary Trainer</h1>
+    <p>English ↔ Spanish · Add words, review vocabulary, and practise</p>
+  </header>
+  <section class="panel" id="app" aria-live="polite"></section>
+</main>
+<script>
+(() => {
+  const app = document.getElementById("app");
+  const LANGS = {
+    en: {name:"English", native:"English"},
+    es: {name:"Spanish", native:"Español"},
+    fr: {name:"French", native:"Français"},
+    de: {name:"German", native:"Deutsch"},
+    it: {name:"Italian", native:"Italiano"},
+    pt: {name:"Portuguese", native:"Português"},
+    nl: {name:"Dutch", native:"Nederlands"},
+    ja: {name:"Japanese", native:"日本語"}
+  };
+  const I18N = {
+    en:{title:"Vocabulary Trainer",subtitle:"Add words, review vocabulary, and practise",menu:"Main Menu",choose:"Choose what you’d like to do.",add:"Add a new word",view:"View all vocabulary",del:"Delete a word",challenges:"Exercises / Challenges",backup:"Import / Export vocabulary",settings:"Language settings",option:"OPTION",save:"Save word",back:"Back to menu",main:"Main menu",word:"Word",translation:"Translation",empty:"Your vocabulary list is empty.",deletePrompt:"Word to remove",deleteBtn:"Delete word",confirmDelete:"Are you sure you want to delete",cancel:"Deletion cancelled.",deleted:"successfully deleted.",notFound:"That word isn’t in your vocabulary.",saved:"Saved",all:"All vocabulary",exportTitle:"Import / Export vocabulary",exportInfo:"Your words are saved automatically on this device. You can also export a JSON backup or import one.",export:"Export vocabulary (.json)",import:"Import vocabulary (.json)",chooseFile:"Choose a JSON vocabulary file",importInfo:"Import adds words to your current list. Existing matching words will be replaced.",exported:"Exported",imported:"Imported",badFile:"Could not read that file as JSON. Please choose a valid vocabulary export.",fileShape:"The file must contain a JSON object mapping words to translations.",entryShape:"Every entry must have a non-empty word and translation.",fileError:"Could not read that file. Please try again.",settingsTitle:"Language settings",uiLang:"Interface language",learnLang:"Learning language",settingsInfo:"Changing languages switches the vocabulary pair you are working on. Each pair is saved separately on this device.",settingsSave:"Save settings",settingsSaved:"Language settings saved.",pick:"Pick a challenge type, or choose a random one.",toLearn:"Translate {ui} → {learn}",toUi:"Translate {learn} → {ui}",missing:"Fill in the missing letters",unscramble:"Unscramble the {learn} word",random:"Random challenge",surprise:"SURPRISE ME",challenge:"CHALLENGE",answer:"Your answer",check:"Check answer",newRandom:"New random challenge",hintLearn:"{learn} translation",hintUi:"{ui} translation",fullWord:"Type the full {learn} word",enterUnscrambled:"Enter the unscrambled word",correct:"Yay! Correct!",wrong:"Not quite — the answer was “{answer}”.",addBefore:"Add some vocabulary before practising.",twoLetters:"Add a word with at least two letters to practise.",language:"Language",source:"{ui} word",target:"{learn} translation",menuAdd:"Add words in your {ui} language and their {learn} translations.",noWords:"No words saved yet."},
+    es:{title:"Entrenador de vocabulario",subtitle:"Añade palabras, repasa vocabulario y practica",menu:"Menú principal",choose:"Elige qué quieres hacer.",add:"Añadir una palabra",view:"Ver todo el vocabulario",del:"Eliminar una palabra",challenges:"Ejercicios / Retos",backup:"Importar / Exportar vocabulario",settings:"Configuración de idioma",option:"OPCIÓN",save:"Guardar palabra",back:"Volver al menú",main:"Menú principal",word:"Palabra",translation:"Traducción",empty:"Tu lista de vocabulario está vacía.",deletePrompt:"Palabra que eliminar",deleteBtn:"Eliminar palabra",confirmDelete:"¿Seguro que quieres eliminar",cancel:"Eliminación cancelada.",deleted:"eliminada correctamente.",notFound:"Esa palabra no está en tu vocabulario.",saved:"Guardado",all:"Todo el vocabulario",exportTitle:"Importar / Exportar vocabulario",exportInfo:"Tus palabras se guardan automáticamente en este dispositivo. También puedes exportar una copia JSON o importar una.",export:"Exportar vocabulario (.json)",import:"Importar vocabulario (.json)",chooseFile:"Elige un archivo JSON de vocabulario",importInfo:"La importación añade palabras a la lista actual. Las palabras existentes se reemplazan.",exported:"Exportadas",imported:"Importadas",badFile:"No se pudo leer el archivo JSON. Elige una copia válida.",fileShape:"El archivo debe contener un objeto JSON con palabras y traducciones.",entryShape:"Cada entrada debe tener una palabra y una traducción.",fileError:"No se pudo leer el archivo. Inténtalo de nuevo.",settingsTitle:"Configuración de idioma",uiLang:"Idioma de la interfaz",learnLang:"Idioma que estás aprendiendo",settingsInfo:"Al cambiar los idiomas, cambiará el par de vocabulario. Cada par se guarda por separado en este dispositivo.",settingsSave:"Guardar configuración",settingsSaved:"Configuración de idioma guardada.",pick:"Elige un reto o uno aleatorio.",toLearn:"Traducir {ui} → {learn}",toUi:"Traducir {learn} → {ui}",missing:"Completa las letras que faltan",unscramble:"Ordena la palabra en {learn}",random:"Reto aleatorio",surprise:"SORPRÉNDEME",challenge:"RETO",answer:"Tu respuesta",check:"Comprobar respuesta",newRandom:"Nuevo reto aleatorio",hintLearn:"Traducción al {learn}",hintUi:"Traducción al {ui}",fullWord:"Escribe la palabra completa en {learn}",enterUnscrambled:"Escribe la palabra ordenada",correct:"¡Muy bien! ¡Correcto!",wrong:"No exactamente: la respuesta era «{answer}».",addBefore:"Añade vocabulario antes de practicar.",twoLetters:"Añade una palabra de al menos dos letras.",language:"Idioma",source:"Palabra en {ui}",target:"Traducción al {learn}",menuAdd:"Añade palabras en {ui} y sus traducciones al {learn}.",noWords:"Todavía no hay palabras guardadas."},
+    fr:{title:"Entraîneur de vocabulaire",subtitle:"Ajoutez des mots, révisez le vocabulaire et entraînez-vous",menu:"Menu principal",choose:"Choisissez une action.",add:"Ajouter un mot",view:"Voir tout le vocabulaire",del:"Supprimer un mot",challenges:"Exercices / Défis",backup:"Importer / Exporter le vocabulaire",settings:"Paramètres de langue",option:"OPTION",save:"Enregistrer le mot",back:"Retour au menu",main:"Menu principal",word:"Mot",translation:"Traduction",empty:"Votre liste de vocabulaire est vide.",deletePrompt:"Mot à supprimer",deleteBtn:"Supprimer le mot",confirmDelete:"Voulez-vous vraiment supprimer",cancel:"Suppression annulée.",deleted:"supprimé avec succès.",notFound:"Ce mot ne figure pas dans votre vocabulaire.",saved:"Enregistré",all:"Tout le vocabulaire",exportTitle:"Importer / Exporter le vocabulaire",exportInfo:"Vos mots sont automatiquement enregistrés sur cet appareil. Vous pouvez aussi exporter une sauvegarde JSON ou en importer une.",export:"Exporter le vocabulaire (.json)",import:"Importer le vocabulaire (.json)",chooseFile:"Choisir un fichier JSON de vocabulaire",importInfo:"L’importation ajoute les mots à votre liste. Les mots identiques sont remplacés.",exported:"Exportés",imported:"Importés",badFile:"Impossible de lire ce fichier JSON. Choisissez une sauvegarde valide.",fileShape:"Le fichier doit contenir un objet JSON associant les mots à leurs traductions.",entryShape:"Chaque entrée doit contenir un mot et une traduction.",fileError:"Impossible de lire ce fichier. Réessayez.",settingsTitle:"Paramètres de langue",uiLang:"Langue de l’interface",learnLang:"Langue à apprendre",settingsInfo:"Changer les langues change la paire de vocabulaire utilisée. Chaque paire est enregistrée séparément sur cet appareil.",settingsSave:"Enregistrer les paramètres",settingsSaved:"Paramètres de langue enregistrés.",pick:"Choisissez un défi ou lancez-en un au hasard.",toLearn:"Traduire {ui} → {learn}",toUi:"Traduire {learn} → {ui}",missing:"Compléter les lettres manquantes",unscramble:"Remettre le mot {learn} en ordre",random:"Défi aléatoire",surprise:"SURPRENEZ-MOI",challenge:"DÉFI",answer:"Votre réponse",check:"Vérifier la réponse",newRandom:"Nouveau défi aléatoire",hintLearn:"Traduction en {learn}",hintUi:"Traduction en {ui}",fullWord:"Saisissez le mot complet en {learn}",enterUnscrambled:"Saisissez le mot dans le bon ordre",correct:"Bravo ! C’est correct !",wrong:"Pas tout à fait : la réponse était « {answer} ».",addBefore:"Ajoutez du vocabulaire avant de vous entraîner.",twoLetters:"Ajoutez un mot d’au moins deux lettres.",language:"Langue",source:"Mot en {ui}",target:"Traduction en {learn}",menuAdd:"Ajoutez des mots en {ui} et leurs traductions en {learn}.",noWords:"Aucun mot enregistré pour le moment."},
+    de:{title:"Vokabeltrainer",subtitle:"Wörter hinzufügen, Vokabeln ansehen und üben",menu:"Hauptmenü",choose:"Wähle eine Aktion.",add:"Neues Wort hinzufügen",view:"Alle Vokabeln anzeigen",del:"Wort löschen",challenges:"Übungen / Herausforderungen",backup:"Vokabeln importieren / exportieren",settings:"Spracheinstellungen",option:"OPTION",save:"Wort speichern",back:"Zurück zum Menü",main:"Hauptmenü",word:"Wort",translation:"Übersetzung",empty:"Deine Vokabelliste ist leer.",deletePrompt:"Zu löschendes Wort",deleteBtn:"Wort löschen",confirmDelete:"Möchtest du wirklich löschen",cancel:"Löschen abgebrochen.",deleted:"erfolgreich gelöscht.",notFound:"Dieses Wort ist nicht in deiner Vokabelliste.",saved:"Gespeichert",all:"Alle Vokabeln",exportTitle:"Vokabeln importieren / exportieren",exportInfo:"Deine Wörter werden automatisch auf diesem Gerät gespeichert. Du kannst auch eine JSON-Sicherung exportieren oder importieren.",export:"Vokabeln exportieren (.json)",import:"Vokabeln importieren (.json)",chooseFile:"JSON-Vokabeldatei auswählen",importInfo:"Der Import ergänzt deine Liste. Bereits vorhandene Wörter werden ersetzt.",exported:"Exportiert",imported:"Importiert",badFile:"Die JSON-Datei konnte nicht gelesen werden. Wähle eine gültige Sicherung.",fileShape:"Die Datei muss ein JSON-Objekt mit Wörtern und Übersetzungen enthalten.",entryShape:"Jeder Eintrag benötigt ein Wort und eine Übersetzung.",fileError:"Datei konnte nicht gelesen werden. Bitte erneut versuchen.",settingsTitle:"Spracheinstellungen",uiLang:"Sprache der Benutzeroberfläche",learnLang:"Lernsprache",settingsInfo:"Ein Sprachwechsel ändert das verwendete Vokabelpaar. Jedes Paar wird getrennt auf diesem Gerät gespeichert.",settingsSave:"Einstellungen speichern",settingsSaved:"Spracheinstellungen gespeichert.",pick:"Wähle eine Übung oder eine zufällige Herausforderung.",toLearn:"{ui} → {learn} übersetzen",toUi:"{learn} → {ui} übersetzen",missing:"Fehlende Buchstaben ergänzen",unscramble:"Das {learn}-Wort sortieren",random:"Zufällige Übung",surprise:"ÜBERRASCH MICH",challenge:"ÜBUNG",answer:"Deine Antwort",check:"Antwort prüfen",newRandom:"Neue zufällige Übung",hintLearn:"{learn}-Übersetzung",hintUi:"{ui}-Übersetzung",fullWord:"Gib das vollständige {learn}-Wort ein",enterUnscrambled:"Gib das Wort in der richtigen Reihenfolge ein",correct:"Super! Richtig!",wrong:"Nicht ganz — die Antwort war „{answer}“.",addBefore:"Füge zuerst Vokabeln hinzu.",twoLetters:"Füge ein Wort mit mindestens zwei Buchstaben hinzu.",language:"Sprache",source:"Wort auf {ui}",target:"Übersetzung auf {learn}",menuAdd:"Füge Wörter auf {ui} und ihre Übersetzungen auf {learn} hinzu.",noWords:"Noch keine Wörter gespeichert."},
+    it:{title:"Allenatore di vocaboli",subtitle:"Aggiungi parole, ripassa il vocabolario e fai pratica",menu:"Menu principale",choose:"Scegli cosa vuoi fare.",add:"Aggiungi una parola",view:"Visualizza tutto il vocabolario",del:"Elimina una parola",challenges:"Esercizi / Sfide",backup:"Importa / Esporta vocabolario",settings:"Impostazioni lingua",option:"OPZIONE",save:"Salva parola",back:"Torna al menu",main:"Menu principale",word:"Parola",translation:"Traduzione",empty:"La tua lista di vocaboli è vuota.",deletePrompt:"Parola da eliminare",deleteBtn:"Elimina parola",confirmDelete:"Vuoi davvero eliminare",cancel:"Eliminazione annullata.",deleted:"eliminata correttamente.",notFound:"Questa parola non è nel tuo vocabolario.",saved:"Salvata",all:"Tutto il vocabolario",exportTitle:"Importa / Esporta vocabolario",exportInfo:"Le parole vengono salvate automaticamente su questo dispositivo. Puoi anche esportare o importare una copia JSON.",export:"Esporta vocabolario (.json)",import:"Importa vocabolario (.json)",chooseFile:"Scegli un file JSON di vocaboli",importInfo:"L’importazione aggiunge parole alla lista. Le parole già presenti vengono sostituite.",exported:"Esportate",imported:"Importate",badFile:"Impossibile leggere il file JSON. Scegli una copia valida.",fileShape:"Il file deve contenere un oggetto JSON con parole e traduzioni.",entryShape:"Ogni voce deve avere una parola e una traduzione.",fileError:"Impossibile leggere il file. Riprova.",settingsTitle:"Impostazioni lingua",uiLang:"Lingua dell’interfaccia",learnLang:"Lingua da imparare",settingsInfo:"Cambiare lingua cambia la coppia di vocaboli. Ogni coppia viene salvata separatamente su questo dispositivo.",settingsSave:"Salva impostazioni",settingsSaved:"Impostazioni lingua salvate.",pick:"Scegli una sfida o una sfida casuale.",toLearn:"Traduci {ui} → {learn}",toUi:"Traduci {learn} → {ui}",missing:"Completa le lettere mancanti",unscramble:"Riordina la parola in {learn}",random:"Sfida casuale",surprise:"SORPRENDIMI",challenge:"SFIDA",answer:"La tua risposta",check:"Controlla la risposta",newRandom:"Nuova sfida casuale",hintLearn:"Traduzione in {learn}",hintUi:"Traduzione in {ui}",fullWord:"Scrivi la parola completa in {learn}",enterUnscrambled:"Inserisci la parola riordinata",correct:"Evviva! Corretto!",wrong:"Non proprio: la risposta era «{answer}».",addBefore:"Aggiungi vocaboli prima di esercitarti.",twoLetters:"Aggiungi una parola di almeno due lettere.",language:"Lingua",source:"Parola in {ui}",target:"Traduzione in {learn}",menuAdd:"Aggiungi parole in {ui} e le traduzioni in {learn}.",noWords:"Nessuna parola salvata."},
+    pt:{title:"Treinador de vocabulário",subtitle:"Adicione palavras, reveja o vocabulário e pratique",menu:"Menu principal",choose:"Escolha o que pretende fazer.",add:"Adicionar palavra",view:"Ver todo o vocabulário",del:"Eliminar palavra",challenges:"Exercícios / Desafios",backup:"Importar / Exportar vocabulário",settings:"Definições de idioma",option:"OPÇÃO",save:"Guardar palavra",back:"Voltar ao menu",main:"Menu principal",word:"Palavra",translation:"Tradução",empty:"A sua lista de vocabulário está vazia.",deletePrompt:"Palavra a eliminar",deleteBtn:"Eliminar palavra",confirmDelete:"Tem a certeza de que pretende eliminar",cancel:"Eliminação cancelada.",deleted:"eliminada com sucesso.",notFound:"Essa palavra não está no seu vocabulário.",saved:"Guardada",all:"Todo o vocabulário",exportTitle:"Importar / Exportar vocabulário",exportInfo:"As palavras são guardadas automaticamente neste dispositivo. Também pode exportar uma cópia JSON ou importar uma.",export:"Exportar vocabulário (.json)",import:"Importar vocabulário (.json)",chooseFile:"Escolher um ficheiro JSON de vocabulário",importInfo:"A importação adiciona palavras à lista. As palavras existentes são substituídas.",exported:"Exportadas",imported:"Importadas",badFile:"Não foi possível ler o ficheiro JSON. Escolha uma cópia válida.",fileShape:"O ficheiro deve conter um objeto JSON com palavras e traduções.",entryShape:"Cada entrada deve ter uma palavra e uma tradução.",fileError:"Não foi possível ler o ficheiro. Tente novamente.",settingsTitle:"Definições de idioma",uiLang:"Idioma da interface",learnLang:"Idioma a aprender",settingsInfo:"Mudar os idiomas altera o par de vocabulário utilizado. Cada par é guardado separadamente neste dispositivo.",settingsSave:"Guardar definições",settingsSaved:"Definições de idioma guardadas.",pick:"Escolha um desafio ou um aleatório.",toLearn:"Traduzir {ui} → {learn}",toUi:"Traduzir {learn} → {ui}",missing:"Preencher as letras em falta",unscramble:"Organizar a palavra em {learn}",random:"Desafio aleatório",surprise:"SURPREENDE-ME",challenge:"DESAFIO",answer:"A sua resposta",check:"Verificar resposta",newRandom:"Novo desafio aleatório",hintLearn:"Tradução em {learn}",hintUi:"Tradução em {ui}",fullWord:"Escreva a palavra completa em {learn}",enterUnscrambled:"Introduza a palavra na ordem correta",correct:"Muito bem! Correto!",wrong:"Não exatamente — a resposta era «{answer}».",addBefore:"Adicione vocabulário antes de praticar.",twoLetters:"Adicione uma palavra com pelo menos duas letras.",language:"Idioma",source:"Palavra em {ui}",target:"Tradução em {learn}",menuAdd:"Adicione palavras em {ui} e as respetivas traduções em {learn}.",noWords:"Ainda não existem palavras guardadas."},
+    nl:{title:"Woordentrainer",subtitle:"Voeg woorden toe, bekijk woordenschat en oefen",menu:"Hoofdmenu",choose:"Kies wat je wilt doen.",add:"Nieuw woord toevoegen",view:"Alle woordenschat bekijken",del:"Woord verwijderen",challenges:"Oefeningen / Uitdagingen",backup:"Woordenschat importeren / exporteren",settings:"Taalinstellingen",option:"OPTIE",save:"Woord opslaan",back:"Terug naar menu",main:"Hoofdmenu",word:"Woord",translation:"Vertaling",empty:"Je woordenlijst is leeg.",deletePrompt:"Te verwijderen woord",deleteBtn:"Woord verwijderen",confirmDelete:"Weet je zeker dat je wilt verwijderen",cancel:"Verwijderen geannuleerd.",deleted:"succesvol verwijderd.",notFound:"Dit woord staat niet in je woordenlijst.",saved:"Opgeslagen",all:"Alle woordenschat",exportTitle:"Woordenschat importeren / exporteren",exportInfo:"Je woorden worden automatisch op dit apparaat opgeslagen. Je kunt ook een JSON-back-up exporteren of importeren.",export:"Woordenschat exporteren (.json)",import:"Woordenschat importeren (.json)",chooseFile:"Kies een JSON-woordenbestand",importInfo:"Importeren voegt woorden toe. Bestaande woorden worden vervangen.",badFile:"Het JSON-bestand kon niet worden gelezen. Kies een geldige back-up.",fileShape:"Het bestand moet een JSON-object met woorden en vertalingen bevatten.",entryShape:"Elke invoer moet een woord en vertaling bevatten.",fileError:"Bestand kon niet worden gelezen. Probeer opnieuw.",settingsTitle:"Taalinstellingen",uiLang:"Interfacetaal",learnLang:"Leertaal",settingsInfo:"Als je de talen wijzigt, verandert het woordpaar. Elk paar wordt apart op dit apparaat opgeslagen.",settingsSave:"Instellingen opslaan",settingsSaved:"Taalinstellingen opgeslagen.",pick:"Kies een uitdaging of een willekeurige uitdaging.",toLearn:"Vertaal {ui} → {learn}",toUi:"Vertaal {learn} → {ui}",missing:"Vul de ontbrekende letters in",unscramble:"Hussel het {learn}-woord",random:"Willekeurige uitdaging",surprise:"VERRAS ME",challenge:"UITDAGING",answer:"Jouw antwoord",check:"Antwoord controleren",newRandom:"Nieuwe willekeurige uitdaging",hintLearn:"{learn}-vertaling",hintUi:"{ui}-vertaling",fullWord:"Typ het volledige {learn}-woord",enterUnscrambled:"Typ het woord in de juiste volgorde",correct:"Goed gedaan! Correct!",wrong:"Niet helemaal — het antwoord was “{answer}”.",addBefore:"Voeg eerst woordenschat toe.",twoLetters:"Voeg een woord van minstens twee letters toe.",language:"Taal",source:"Woord in {ui}",target:"Vertaling in {learn}",menuAdd:"Voeg woorden in {ui} en vertalingen in {learn} toe.",noWords:"Nog geen woorden opgeslagen."},
+    ja:{title:"単語トレーナー",subtitle:"単語を追加して、復習し、練習しましょう",menu:"メインメニュー",choose:"操作を選んでください。",add:"単語を追加",view:"すべての単語を見る",del:"単語を削除",challenges:"練習 / チャレンジ",backup:"単語をインポート / エクスポート",settings:"言語設定",option:"オプション",save:"単語を保存",back:"メニューに戻る",main:"メインメニュー",word:"単語",translation:"翻訳",empty:"単語リストは空です。",deletePrompt:"削除する単語",deleteBtn:"単語を削除",confirmDelete:"本当に削除しますか",cancel:"削除をキャンセルしました。",deleted:"削除しました。",notFound:"その単語はリストにありません。",saved:"保存しました",all:"すべての単語",exportTitle:"単語をインポート / エクスポート",exportInfo:"単語はこの端末に自動保存されます。JSONバックアップの書き出しや読み込みもできます。",export:"単語をエクスポート (.json)",import:"単語をインポート (.json)",chooseFile:"JSON単語ファイルを選択",importInfo:"インポートすると単語が追加され、同じ単語は置き換えられます。",badFile:"JSONファイルを読み込めません。有効なバックアップを選んでください。",fileShape:"ファイルには単語と翻訳を含むJSONオブジェクトが必要です。",entryShape:"各項目には単語と翻訳が必要です。",fileError:"ファイルを読み込めません。もう一度お試しください。",settingsTitle:"言語設定",uiLang:"画面の言語",learnLang:"学習する言語",settingsInfo:"言語を変更すると単語ペアが切り替わります。各ペアはこの端末に個別保存されます。",settingsSave:"設定を保存",settingsSaved:"言語設定を保存しました。",pick:"チャレンジを選ぶか、ランダムで始めましょう。",toLearn:"{ui} → {learn} に翻訳",toUi:"{learn} → {ui} に翻訳",missing:"抜けている文字を入力",unscramble:"{learn}の単語を並べ替える",random:"ランダムチャレンジ",surprise:"おまかせ",challenge:"チャレンジ",answer:"答え",check:"答えを確認",newRandom:"新しいランダムチャレンジ",hintLearn:"{learn}の翻訳",hintUi:"{ui}の翻訳",fullWord:"{learn}の単語全体を入力",enterUnscrambled:"正しい順番で単語を入力",correct:"正解！",wrong:"惜しい！答えは「{answer}」です。",addBefore:"練習する前に単語を追加してください。",twoLetters:"2文字以上の単語を追加してください。",language:"言語",source:"{ui}の単語",target:"{learn}の翻訳",menuAdd:"{ui}の単語と{learn}の翻訳を追加してください。",noWords:"保存された単語はまだありません。"}
+  };
+  const settingsKey = "vocabTrainer.settings.v2";
+  let settings = {ui:"en", learn:"es"};
+  try { settings = {...settings, ...JSON.parse(localStorage.getItem(settingsKey) || "{}")}; } catch {}
+  if (!LANGS[settings.ui]) settings.ui="en";
+  if (!LANGS[settings.learn] || settings.learn===settings.ui) settings.learn = settings.ui==="es" ? "en" : "es";
+  let notice = "";
+  let noticeType = "";
+  let screen = "menu";
+  function pairKey() { return `vocabTrainer.words.v2.${settings.ui}.${settings.learn}`; }
+  function loadWords() {
+    try { const x=JSON.parse(localStorage.getItem(pairKey())||"{}"); return x && typeof x==="object" && !Array.isArray(x) ? x : {}; } catch { return {}; }
+  }
+  let words = loadWords();
+  function persist() {
+    try { localStorage.setItem(pairKey(), JSON.stringify(words)); localStorage.setItem(settingsKey,JSON.stringify(settings)); }
+    catch { showNotice("Could not save locally. Your browser may be blocking site storage.","bad"); }
+  }
+  const T = (key, vars={}) => {
+    const dict=I18N[settings.ui] || I18N.en;
+    let value=dict[key] || I18N.en[key] || key;
+    const all={ui:LANGS[settings.ui].name,learn:LANGS[settings.learn].name,...vars};
+    return value.replace(/\{(\w+)\}/g,(_,k)=>all[k] ?? `{${k}}`);
+  };
+  function esc(s) { return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+  function showNotice(m="",type="") { notice=m; noticeType=type; }
+  function noticeHTML(){return notice?`<div class="notice ${noticeType}">${esc(notice)}</div>`:"";}
+  function btn(label,action,cls=""){return `<button type="button" class="${cls}" data-action="${action}">${label}</button>`;}
+  function langOptions(selected, exclude=""){return Object.entries(LANGS).filter(([code])=>code!==exclude).map(([code,l])=>`<option value="${code}" ${code===selected?"selected":""}>${esc(l.native)} — ${esc(l.name)}</option>`).join("");}
+  function renderMenu(){
+    screen="menu";
+    app.innerHTML=`<h2 class="section-title">${T("menu")}</h2><p class="muted">${T("choose")}</p><p class="muted">${T("menuAdd")}</p>
+      <div class="menu">
+      <button class="add" data-action="add"><span class="num">${T("option")} 1</span>${T("add")}</button>
+      <button class="view" data-action="view"><span class="num">${T("option")} 2</span>${T("view")}</button>
+      <button class="delete" data-action="delete"><span class="num">${T("option")} 3</span>${T("del")}</button>
+      <button class="challenge" data-action="challenges"><span class="num">${T("option")} 4</span>${T("challenges")}</button>
+      <button data-action="import-export" style="border-left:4px solid var(--green)"><span class="num">${T("option")} 5</span>${T("backup")}</button>
+      <button data-action="settings" style="border-left:4px solid var(--blue)"><span class="num">${T("option")} 6</span>${T("settings")}</button>
+      </div>${noticeHTML()}`;
+  }
+  function renderAdd(){
+    screen="add";
+    const examples = {
+      en:{es:["hello","hola"],fr:["hello","bonjour"],de:["hello","hallo"],it:["hello","ciao"],pt:["hello","olá"],nl:["hello","hallo"],ja:["hello","こんにちは"]},
+      es:{en:["hola","hello"],fr:["hola","salut"],de:["hola","hallo"],it:["hola","ciao"],pt:["hola","olá"],nl:["hola","hallo"],ja:["hola","こんにちは"]},
+      fr:{en:["bonjour","hello"],es:["bonjour","hola"],de:["bonjour","guten Tag"],it:["bonjour","buongiorno"],pt:["bonjour","olá"],nl:["bonjour","hallo"],ja:["bonjour","こんにちは"]},
+      de:{en:["hallo","hello"],es:["hallo","hola"],fr:["hallo","bonjour"],it:["hallo","ciao"],pt:["hallo","olá"],nl:["hallo","hallo"],ja:["hallo","こんにちは"]},
+      it:{en:["ciao","hello"],es:["ciao","hola"],fr:["ciao","salut"],de:["ciao","hallo"],pt:["ciao","olá"],nl:["ciao","hallo"],ja:["ciao","こんにちは"]},
+      pt:{en:["olá","hello"],es:["olá","hola"],fr:["olá","bonjour"],de:["olá","hallo"],it:["olá","ciao"],nl:["olá","hallo"],ja:["olá","こんにちは"]},
+      nl:{en:["hallo","hello"],es:["hallo","hola"],fr:["hallo","bonjour"],de:["hallo","hallo"],it:["hallo","ciao"],pt:["hallo","olá"],ja:["hallo","こんにちは"]},
+      ja:{en:["こんにちは","hello"],es:["こんにちは","hola"],fr:["こんにちは","bonjour"],de:["こんにちは","hallo"],it:["こんにちは","ciao"],pt:["こんにちは","olá"],nl:["こんにちは","hallo"]}
+    };
+    const example = examples[settings.ui]?.[settings.learn] || ["hello","hola"];
+    app.innerHTML=`<h2 class="section-title">${T("add")}</h2><form id="add-form">
+      <div class="field"><label for="source-word">${esc(T("source"))}</label><input id="source-word" required autocomplete="off" placeholder="${esc(example[0])}"></div>
+      <div class="field"><label for="target-word">${esc(T("target"))}</label><input id="target-word" required autocomplete="off" placeholder="${esc(example[1])}"></div>
+      <p class="muted small">Example: <strong>${esc(example[0])}</strong> → <strong>${esc(example[1])}</strong></p>
+      <div class="actions"><button class="primary" type="submit">${T("save")}</button>${btn(T("back"),"menu","back")}</div></form>${noticeHTML()}`;
+    document.getElementById("add-form").addEventListener("submit",e=>{
+      e.preventDefault();const a=document.getElementById("source-word").value.trim(),b=document.getElementById("target-word").value.trim();
+      if(!a||!b)return;words[a]=b;persist();showNotice(`${T("saved")}: “${a}” → “${b}”.`,"good");renderMenu();
+    });
+  }
+  function renderVocab(forDelete=false){
+    screen=forDelete?"delete":"view";const entries=Object.entries(words);
+    app.innerHTML=`<div class="topline"><h2 class="section-title">${forDelete?T("del"):T("all")}</h2>${btn(T("main"),"menu","back")}</div>
+      <div class="word-list"><div class="word-row head"><span>${esc(LANGS[settings.ui].name)}</span><span>${esc(LANGS[settings.learn].name)}</span></div>
+      ${entries.length?entries.map(([a,b])=>`<div class="word-row"><span class="english">${esc(a)}</span><span class="spanish">${esc(b)}</span></div>`).join(""):`<p class="muted">${T("empty")}</p>`}</div>
+      ${forDelete?`<form id="delete-form" class="field"><label for="delete-word">${esc(T("deletePrompt"))}</label><input id="delete-word" list="word-list-options" required autocomplete="off"><datalist id="word-list-options">${entries.map(([a])=>`<option value="${esc(a)}">`).join("")}</datalist><div class="actions"><button class="danger" type="submit">${T("deleteBtn")}</button></div></form>`:""}${noticeHTML()}`;
+    if(forDelete)document.getElementById("delete-form").addEventListener("submit",e=>{
+      e.preventDefault();const a=document.getElementById("delete-word").value.trim();
+      if(!Object.prototype.hasOwnProperty.call(words,a)){showNotice(T("notFound"),"bad");renderVocab(true);return;}
+      if(!window.confirm(`${T("confirmDelete")} "${a}"?`)){showNotice(T("cancel"));renderVocab(true);return;}
+      delete words[a];persist();showNotice(`“${a}” ${T("deleted")}`,"good");renderVocab(true);
+    });
+  }
+  function renderSettings(){
+    screen="settings";
+    app.innerHTML=`<h2 class="section-title">${T("settingsTitle")}</h2><form id="settings-form">
+      <div class="field"><label for="ui-language">${T("uiLang")}</label><select id="ui-language">${langOptions(settings.ui)}</select></div>
+      <div class="field"><label for="learn-language">${T("learnLang")}</label><select id="learn-language">${langOptions(settings.learn,settings.ui)}</select></div>
+      <p class="muted small">${T("settingsInfo")}</p><div class="actions"><button class="primary" type="submit">${T("settingsSave")}</button>${btn(T("back"),"menu","back")}</div></form>${noticeHTML()}`;
+    document.getElementById("settings-form").addEventListener("submit",e=>{
+      e.preventDefault();const ui=document.getElementById("ui-language").value,learn=document.getElementById("learn-language").value;
+      if(ui===learn){showNotice("Choose two different languages.","bad");renderSettings();return;}
+      settings={ui,learn};localStorage.setItem(settingsKey,JSON.stringify(settings));words=loadWords();showNotice(T("settingsSaved"),"good");renderMenu();
+    });
+    document.getElementById("ui-language").addEventListener("change",e=>{
+      const learning=document.getElementById("learn-language");
+      [...learning.options].forEach(o=>o.disabled=o.value===e.target.value);
+      if(learning.value===e.target.value)learning.value=Object.keys(LANGS).find(k=>k!==e.target.value);
+    });
+  }
+  function renderImportExport(){
+    screen="import-export";
+    app.innerHTML=`<div class="topline"><h2 class="section-title">${T("exportTitle")}</h2>${btn(T("main"),"menu","back")}</div>
+      <p class="muted">${T("exportInfo")}</p><div class="actions"><button class="primary" data-action="export">${T("export")}</button><button data-action="choose-import">${T("import")}</button></div>
+      <div class="field" style="margin-top:20px"><label for="import-file">${T("chooseFile")}</label><input id="import-file" type="file" accept=".json,application/json"><p class="small muted">${T("importInfo")}</p></div>${noticeHTML()}`;
+  }
+  function exportVocab(){
+    const blob=new Blob([JSON.stringify({uiLanguage:settings.ui,learningLanguage:settings.learn,words},null,2)],{type:"application/json;charset=utf-8"});
+    const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="vocabulary.json";document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+    showNotice(`${T("exported")} ${Object.keys(words).length}.`,"good");renderImportExport();
+  }
+  function importVocab(file){
+    if(!file)return;const reader=new FileReader();
+    reader.onload=()=>{try{
+      const data=JSON.parse(reader.result);const imported=data && data.words && typeof data.words==="object"&&!Array.isArray(data.words)?data.words:data;
+      if(!imported||typeof imported!=="object"||Array.isArray(imported))throw new Error(T("fileShape"));
+      const entries=Object.entries(imported);if(entries.some(([a,b])=>typeof a!=="string"||!a.trim()||typeof b!=="string"||!b.trim()))throw new Error(T("entryShape"));
+      entries.forEach(([a,b])=>words[a.trim()]=b.trim());persist();showNotice(`${T("imported")} ${entries.length}.`,"good");renderImportExport();
+    }catch(err){showNotice(err instanceof SyntaxError?T("badFile"):err.message,"bad");renderImportExport();}};
+    reader.onerror=()=>{showNotice(T("fileError"),"bad");renderImportExport();};reader.readAsText(file);
+  }
+  function renderChallenges(){
+    screen="challenges";const types=[{label:T("toLearn"),run:translateUi},{label:T("toUi"),run:translateLearn},{label:T("missing"),run:missingLetters},{label:T("unscramble"),run:unscramble}];
+    app.innerHTML=`<div class="topline"><h2 class="section-title">${T("challenges")}</h2>${btn(T("main"),"menu","back")}</div><p class="muted">${T("pick")}</p><div class="menu">
+      ${types.map((x,i)=>`<button data-action="challenge-${i}"><span class="num">${T("challenge")} ${i+1}</span>${x.label}</button>`).join("")}
+      <button class="primary" data-action="challenge-random"><span class="num">${T("surprise")}</span>${T("random")}</button></div>${noticeHTML()}`;
+  }
+  function challengeScreen(title,prompt,placeholder,check,hint=""){
+    screen="challenge";
+    app.innerHTML=`<div class="topline"><h2 class="section-title">${title}</h2>${btn(T("challenges"),"challenges","back")}</div>${hint?`<p class="muted">${esc(hint)}</p>`:""}<div class="prompt">${prompt}</div>
+      <form id="answer-form"><div class="field"><label for="answer">${T("answer")}</label><input id="answer" required autocomplete="off" placeholder="${esc(placeholder)}"></div>
+      <div class="actions"><button class="primary" type="submit">${T("check")}</button><button type="button" data-action="challenge-random">${T("newRandom")}</button></div></form>${noticeHTML()}`;
+    document.getElementById("answer-form").addEventListener("submit",e=>{e.preventDefault();const r=check(document.getElementById("answer").value.trim());showNotice(r.message,r.good?"good":"bad");const old=app.querySelector(".notice");if(old)old.remove();app.insertAdjacentHTML("beforeend",noticeHTML());document.getElementById("answer").select();});
+  }
+  function randomEntry(){const entries=Object.entries(words);return entries[Math.floor(Math.random()*entries.length)];}
+  function norm(s){return s.trim().toLocaleLowerCase();}
+  function noWords(){showNotice(T("addBefore"),"bad");renderChallenges();return true;}
+  function translateUi(){if(!Object.keys(words).length)return noWords();const [a,b]=randomEntry();challengeScreen(T("toLearn"),esc(a),T("hintLearn"),answer=>({good:norm(answer)===norm(b),message:norm(answer)===norm(b)?T("correct"):T("wrong",{answer:b})}));}
+  function translateLearn(){if(!Object.keys(words).length)return noWords();const [a,b]=randomEntry();challengeScreen(T("toUi"),esc(b),T("hintUi"),answer=>({good:norm(answer)===norm(a),message:norm(answer)===norm(a)?T("correct"):T("wrong",{answer:a})}));}
+  function missingLetters(){
+    const entries=Object.entries(words).filter(([,b])=>[...b].length>1);if(!entries.length){showNotice(T("twoLetters"),"bad");renderChallenges();return;}
+    const [,word]=entries[Math.floor(Math.random()*entries.length)],chars=[...word],count=chars.length<=4?1:chars.length<=8?2:3,idx=[...chars.keys()];
+    for(let i=idx.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[idx[i],idx[j]]=[idx[j],idx[i]];}idx.slice(0,Math.min(count,chars.length)).forEach(i=>chars[i]="_");
+    challengeScreen(T("missing"),`<span class="scrambled">${esc(chars.join(" "))}</span>`,T("fullWord"),answer=>({good:norm(answer)===norm(word),message:norm(answer)===norm(word)?T("correct"):T("wrong",{answer:word})}));
+  }
+  function unscramble(){
+    const entries=Object.entries(words).filter(([,b])=>[...b].length>1);if(!entries.length){showNotice(T("twoLetters"),"bad");renderChallenges();return;}
+    const [,word]=entries[Math.floor(Math.random()*entries.length)];let mixed=[...word],original=mixed.join("");
+    for(let tries=0;tries<8&&mixed.join("")===original;tries++){for(let i=mixed.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[mixed[i],mixed[j]]=[mixed[j],mixed[i]];}}
+    challengeScreen(T("unscramble"),`<span class="scrambled">${esc(mixed.join(" · "))}</span>`,T("enterUnscrambled"),answer=>({good:norm(answer)===norm(word),message:norm(answer)===norm(word)?T("correct"):T("wrong",{answer:word})}));
+  }
+  app.addEventListener("change",e=>{if(e.target?.id==="import-file")importVocab(e.target.files?.[0]);});
+  app.addEventListener("click",e=>{
+    const el=e.target.closest("[data-action]");if(!el)return;const a=el.dataset.action;
+    if(a==="menu"){showNotice();renderMenu();}else if(a==="add"){showNotice();renderAdd();}else if(a==="view"){showNotice();renderVocab();}else if(a==="delete"){showNotice();renderVocab(true);}else if(a==="challenges"){showNotice();renderChallenges();}else if(a==="import-export"){showNotice();renderImportExport();}else if(a==="settings"){showNotice();renderSettings();}else if(a==="export")exportVocab();else if(a==="choose-import")document.getElementById("import-file")?.click();else if(a==="challenge-0")translateUi();else if(a==="challenge-1")translateLearn();else if(a==="challenge-2")missingLetters();else if(a==="challenge-3")unscramble();else if(a==="challenge-random")[translateUi,translateLearn,missingLetters,unscramble][Math.floor(Math.random()*4)]();
+  });
+  const uiName=LANGS[settings.ui].name,learnName=LANGS[settings.learn].name;
+  document.title=`${I18N[settings.ui].title} — ${uiName} / ${learnName}`;
+  document.querySelector("header h1").textContent=I18N[settings.ui].title;
+  document.querySelector("header p").textContent=`${uiName} ↔ ${learnName} · ${I18N[settings.ui].subtitle}`;
+  renderMenu();
+})();
+</script>
+</body>
+</html>
